@@ -71,25 +71,28 @@ def parse_token_block(token: BlockToken) -> tuple[str, list[BlockToken], MdConte
 
 
 class KnowlageBaseBlockFactory:
-    @staticmethod
-    def _parse_block(block: BlockToken) -> KnowlageBaseBlock:
-        body, childs, ctx = parse_token_block(block)
-        kb_childs: list[KnowlageBaseBlock] = []
-        for child in childs:
-            kb_childs.append(KnowlageBaseBlockFactory._parse_block(child))
-        kb_block = KnowlageBaseBlock(body, ctx, kb_childs)
-        return kb_block
-
-    @staticmethod
-    def _parse_str(content: str) -> KnowlageBaseBlock:
-        return KnowlageBaseBlockFactory._parse_block(Document(content))
-
-    @staticmethod
-    def _parse_file(file_path: pathlib.Path) -> KnowlageBaseBlock:
+    @classmethod
+    def create(cls, source: str | pathlib.Path) -> KnowlageBaseBlock:
+        """Creates KnowlageBaseBlock from string content or file path"""
+        if isinstance(source, pathlib.Path):
+            return cls._create_from_file(source)
+        return cls._create_from_string(source)
+    
+    @classmethod 
+    def _create_from_string(cls, content: str) -> KnowlageBaseBlock:
+        """Creates block from string content"""
+        return cls._create_from_block(Document(content))
+    
+    @classmethod
+    def _create_from_file(cls, file_path: pathlib.Path) -> KnowlageBaseBlock:
+        """Creates block from file"""
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
-        return KnowlageBaseBlockFactory._parse_str(content)
-
-    @staticmethod
-    def create_block_from_file_path(file_path: pathlib.Path) -> KnowlageBaseBlock:
-        return KnowlageBaseBlockFactory._parse_file(file_path)
+        return cls._create_from_string(content)
+    
+    @classmethod
+    def _create_from_block(cls, block: BlockToken) -> KnowlageBaseBlock:
+        """Creates block from BlockToken"""
+        body, childs, ctx = parse_token_block(block)
+        kb_childs = [cls._create_from_block(child) for child in childs]
+        return KnowlageBaseBlock(body, ctx, kb_childs)        return KnowlageBaseBlockFactory._parse_file(file_path)
